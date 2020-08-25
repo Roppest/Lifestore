@@ -2,18 +2,21 @@ from time import sleep
 from os import system, name
 import subprocess
 import sys
-try: 
+try:
     import pandas as pd
 except:
     subprocess.check_call([sys.executable, "-m", "pip", "install", 'pandas'])
+try:
+    import numpy as np
+except:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'numpy'])
 
 
-#ToDo: falta hacer un join para mostrar los nombres de productos que se vendieron mas y las demas operaciones.
-# Switch no esta funcionando.
+#ToDo: Falta el total de ingresos auales
 """
 This is the LifeStore-SalesList data:
 
-lifestore-searches = [id_search, id product]
+lifestore-searches = [id_search, id_product]
 lifestore-sales = [id_sale, id_product, score (from 1 to 5), date, refund (1 for true or 0 to false)]
 lifestore-products = [id_product, name, price, category, stock]
 """
@@ -1451,19 +1454,19 @@ def clear():
     '''
         Limpia la pantalla, requiere importar os.
     '''
-    #windows 
-    if name == 'nt': 
-        _ = system('cls') 
-  
+    #windows
+    if name == 'nt':
+        _ = system('cls')
+
     #mac o linux
-    else: 
-        _ = system('clear') 
+    else:
+        _ = system('clear')
 
 def login():
     '''
     Recibe datos de usuario y retorna si tiene o no acceso.
 
-    Retruns: 
+    Retruns:
     (Boolean): Login status.
     '''
     user = input('Ingresa tu usuario: ')
@@ -1491,16 +1494,66 @@ def mostrar_operaciones():
     # 50 productos con mayores ventas y 100 productos con mayor búsquedas
     print('2. Productos por resenia de servicio')
     # 20 productos con las mejores resenias y las peores
-    print('3. Total de ingresos y ventas promedio mensuales,\
-         total anual y meses con mas ventas al anio.')
+    print('3. Total de ingresos y ventas promedio mensuales,\n total anual y meses con mas ventas al anio.')
 
 def productos_mas_vendidos():
     '''
     50 productos con mayores ventas y 100 productos con mayor búsquedas
     '''
-    df = pd.DataFrame(lifestore_sales, columns=['id_sale','id_product', 'score' , 'date','refund' ])
-    print(df.groupby('id_product').size().nlargest(50))
-   
+    clear()
+    #convierte las listas a dataframes para poder manejar mejor los datos
+    df_sales = pd.DataFrame(lifestore_sales, columns=['id_sale','id_product', 'score' , 'date','refund' ])
+    df_products = pd.DataFrame(lifestore_products, columns=['id_product', 'name', 'price', 'category', 'stock'])
+    df_searches = pd.DataFrame(lifestore_searches, columns = ['id_search', 'id_product'])
+
+    #Se realiza una proyeccion con los datos e identificadores necesarios.
+    df_sales = df_sales[['id_sale','id_product']]
+    df_products = df_products[['id_product','name']]
+
+
+    #Se filtran los 50 productos mas vendidos y mas buscados agrupados por id.
+    top_sales = pd.DataFrame(df_sales.groupby('id_product').size().nlargest(50))
+    top_searches = pd.DataFrame(df_searches.groupby('id_product').size().nlargest(100))
+    top_sales = top_sales.join(df_products.set_index('id_product'), on="id_product")
+    top_searches = top_searches.join(df_products.set_index('id_product'), on='id_product')
+
+    #Se realiza Join conel otro dataframe para mostrar los nombres de los productos.
+    print('-------------------------50 Mayores Ventas------------------------')
+    print(top_sales.rename(columns={0:'total_sales'},inplace=False))
+    print('\n\n')
+    print('-------------------------100 Mayores Busquedas--------------------')
+    print(top_searches.rename(columns={0:'total_searches'},inplace=False))
+
+def productos_rezagados():
+    '''
+    50 productos con menores ventas y 100 productos con menores búsquedas
+    '''
+    clear()
+    #convierte las listas a dataframes para poder manejar mejor los datos
+    df_sales = pd.DataFrame(lifestore_sales, columns=['id_sale','id_product', 'score' , 'date','refund' ])
+    df_products = pd.DataFrame(lifestore_products, columns=['id_product', 'name', 'price', 'category', 'stock'])
+    df_searches = pd.DataFrame(lifestore_searches, columns = ['id_search', 'id_product'])
+
+    #Se realiza una proyeccion con los datos e identificadores necesarios.
+    df_sales = df_sales[['id_sale','id_product']]
+    df_products = df_products[['id_product','name']]
+
+
+    #Se filtran los 50 productos menos vendidos y menos buscados agrupados por id.
+    worst_sales = pd.DataFrame(df_sales.groupby('id_product').size().nsmallest(50))
+    least_searched = pd.DataFrame(df_searches.groupby('id_product').size().nsmallest(100))
+
+    #Se realiza Join conel otro dataframe para mostrar los nombres de los productos.
+    worst_sales = worst_sales.join(df_products.set_index('id_product'), on="id_product")
+    least_searched = least_searched.join(df_products.set_index('id_product'), on='id_product')
+
+
+    print('-------------------------50 Menores Ventas------------------------')
+    print(worst_sales.rename(columns={0:'total_sales'},inplace=False))
+    print('\n\n')
+    print('-------------------------100 Menores Busquedas--------------------')
+    print(least_searched.rename(columns={0:'total_searches'},inplace=False))
+
 
 def realizar_operacion(op):
     '''
@@ -1508,18 +1561,55 @@ def realizar_operacion(op):
     Parameters:
     op(int)
     '''
-    switcher ={
-        '1': productos_mas_vendidos(),
-        '2': 'Productos por resenia de servicio'
-    }
-    return switcher.get(op,'Ingresa un numero valido.')
+    if op == '1':
+        print('1. Mostrar productos mas vendidos')
+        print('2. Mostrar productos rezagados')
+        op = input()
+        if op == '1':
+            productos_mas_vendidos()
+            input('Presiona Enter para regresar.')
+        elif op == '2':
+            productos_rezagados()
+            input('Presiona Enter para regresar.')
+    elif op == '2':
+        resenias()
+
+        input('Presiona Enter para regresar.')
+    elif op == '3':
+        'Total de ingresos'
+        input('Presiona Enter para regresar.')
+    else:
+        print('Operacion no valida.')
+        sleep(2)
+        clear()
+
+def resenias():
+    '''
+    Muestra las 20 mejores y 20 peores resenias de productos.
+    '''
+    df_sales = pd.DataFrame(lifestore_sales, columns=['id_sale','id_product', 'score' , 'date','refund' ])
+    df_products = pd.DataFrame(lifestore_products, columns=['id_product', 'name', 'price', 'category', 'stock'])
+
+    df_sales = df_sales[['id_product','score','refund']]
+    df_products = df_products[['id_product','name']]
+
+    #Se ordena por producto, se muestra el total de ventas y la calificacion promedio.
+    mejores_resenias = df_sales.groupby('id_product').agg({'id_product':np.size,'score':np.mean,'refund':np.sum})\
+        .rename(columns={'id_product':'total_sales','score':'avg_score'},inplace=False)\
+        .nlargest(20, columns='avg_score')
+
+    print('----------Mejores 20 resenias----------')
+    print(mejores_resenias)
+    print('----------Peores 20 resenias------------')
+
 
 if __name__ == "__main__":
     opcion = 0
-    while True: 
+    while True:
+        clear()
         mostrar_menu()
         opcion = input('Ingresa la opcion que deseas.')
-        
+
 
         if opcion == '1' or opcion.lower() == 'login':
             clear()
