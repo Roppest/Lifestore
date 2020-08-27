@@ -12,7 +12,6 @@ except:
     subprocess.check_call([sys.executable, "-m", "pip", "install", 'numpy'])
 
 
-#ToDo: Falta el total de ingresos auales
 """
 This is the LifeStore-SalesList data:
 
