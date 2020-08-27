@@ -1495,7 +1495,7 @@ def mostrar_operaciones():
     print('2. Productos por resenia de servicio')
     # 20 productos con las mejores resenias y las peores
     print('3. Total de ingresos y ventas promedio mensuales,\n total anual y meses con mas ventas al anio.')
-
+    
 def productos_mas_vendidos():
     '''
     50 productos con mayores ventas y 100 productos con mayor búsquedas
@@ -1576,7 +1576,7 @@ def realizar_operacion(op):
 
         input('Presiona Enter para regresar.')
     elif op == '3':
-        'Total de ingresos'
+        total_ingresos()
         input('Presiona Enter para regresar.')
     else:
         print('Operacion no valida.')
@@ -1593,15 +1593,65 @@ def resenias():
     df_sales = df_sales[['id_product','score','refund']]
     df_products = df_products[['id_product','name']]
 
-    #Se ordena por producto, se muestra el total de ventas y la calificacion promedio.
-    mejores_resenias = df_sales.groupby('id_product').agg({'id_product':np.size,'score':np.mean,'refund':np.sum})\
-        .rename(columns={'id_product':'total_sales','score':'avg_score'},inplace=False)\
-        .nlargest(20, columns='avg_score')
+    #Se ordena por producto por calificacion minima recibida y se suman las devoluciones.
+    resenias = df_sales.groupby('id_product').agg({'score':min,'refund':np.sum})\
+        .rename(columns={'score':'min_score'},inplace=False)
+    resenias = resenias.sort_values(by='min_score',ascending=False)
+
+    mejores_resenias = resenias.nlargest(20,columns='min_score')
+
+    resenias = resenias.sort_values(by='min_score')
+    peores_resenias = resenias.nsmallest(20,columns='min_score')
+
+    #Se realiza join para obtener nombre de los productos
+    mejores_resenias = mejores_resenias.join(df_products.set_index('id_product'), on='id_product')
+    peores_resenias = peores_resenias.join(df_products.set_index('id_product'), on='id_product')
 
     print('----------Mejores 20 resenias----------')
-    print(mejores_resenias)
+    print(mejores_resenias[['min_score','refund','name']])
     print('----------Peores 20 resenias------------')
+    print(peores_resenias[['min_score','refund','name']])
 
+
+def total_ingresos():
+    df_sales = pd.DataFrame(lifestore_sales, columns=['id_sale','id_product', 'score' , 'date','refund' ])
+    df_products = pd.DataFrame(lifestore_products, columns=['id_product', 'name', 'price', 'category', 'stock'])
+    df_searches = pd.DataFrame(lifestore_searches, columns = ['id_search', 'id_product'])
+
+    df_sales = df_sales[['id_product','date','refund']]
+    df_products = df_products[['id_product','price']]
+
+    #Se eliminan las ventas que resultaron en devolucion
+    no_refund = df_sales['refund'] == 0
+    df_sales = df_sales[no_refund]
+
+    monthly_sales = df_sales.join(df_products.set_index('id_product'), on='id_product')
+
+    #Se realiza proyeccion para conservar registro de venta por fecha y precio del producto vendido
+    monthly_sales = monthly_sales[['date','price']]
+    #Se convierte a tipo fecha para mejor acceso
+    monthly_sales['date'] = pd.to_datetime(monthly_sales['date'])
+
+    #Se agrupa por fecha y se obtiene el promedio de ventas por mes
+    avg_monthly_sales = monthly_sales.groupby(monthly_sales['date'].dt.strftime('%m')).agg({'price':np.mean})
+    avg_monthly_sales.rename(columns={'price':'avg_sale'},inplace=False)
+    avg_monthly_sales.columns=['avg_sale']
+
+    #Meses con mayores ventas
+    top_monthly_sales = monthly_sales.groupby(monthly_sales['date'].dt.strftime('%m')).agg({'price':np.sum}).nlargest(5,columns='price')
+    top_monthly_sales.rename(columns={'price':'sales'})
+    top_monthly_sales.columns=['sale_sum']
+
+    #se suman las ventas totales de la tabla
+    total_sales = monthly_sales[['price']].sum()
+    total_sales = total_sales['price']
+
+    print('----------Total de Ingresos----------')
+    print(total_sales)
+    print('------Ventas Promedio Mensuales------')
+    print(avg_monthly_sales)
+    print('------ 5 Meses con Mayores Ventas-----')
+    print(top_monthly_sales)
 
 if __name__ == "__main__":
     opcion = 0
@@ -1621,6 +1671,7 @@ if __name__ == "__main__":
                     mostrar_operaciones()
                     operacion = input('Ingresa la opcion que deseas.')
                     realizar_operacion(operacion)
+                    clear()
             else:
                 print('Datos incorrectos')
                 sleep(1)
