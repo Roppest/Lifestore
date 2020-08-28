@@ -1,5 +1,6 @@
 # Proyecto 1 del curso Data Science
 
+![Lifestore top sales](https://github.com/Roppest/images/blob/master/lifestore_imgs/lifestore_total_sales.png?raw=true)
 Se omiten acentos y caracteres especiales en el documento y en el codigo para evitar errores.
 ## Requerimientos
 El proyecto utiliza las librerias:

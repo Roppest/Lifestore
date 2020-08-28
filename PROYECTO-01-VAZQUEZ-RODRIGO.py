@@ -12,7 +12,6 @@ except:
     subprocess.check_call([sys.executable, "-m", "pip", "install", 'numpy'])
 
 
-#ToDo: Falta el total de ingresos auales
 """
 This is the LifeStore-SalesList data:
 
@@ -1495,7 +1494,7 @@ def mostrar_operaciones():
     print('2. Productos por resenia de servicio')
     # 20 productos con las mejores resenias y las peores
     print('3. Total de ingresos y ventas promedio mensuales,\n total anual y meses con mas ventas al anio.')
-    
+
 def productos_mas_vendidos():
     '''
     50 productos con mayores ventas y 100 productos con mayor búsquedas
